@@ -59,7 +59,7 @@ Your key will be saved to a local `ai_translate.key` file (add it to git ignore 
 ## 📊 Output & Logs
 
 ![image](https://github.com/user-attachments/assets/fed00989-f572-457c-9d39-d87bc6cbd4a8)
-
+![image](https://github.com/user-attachments/assets/3304f916-5467-440a-9bcf-0b9ec095bfff)
 
 - Only untranslated lines are modified.
 - Process summary and OpenAI token usage are shown after completion.
