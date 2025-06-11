@@ -10,8 +10,8 @@ A Python-based GUI tool for batch-translating Unreal Engine localization files (
 ## 📁 Setup
 ![image](https://github.com/user-attachments/assets/8a63d777-1e29-4b78-8dc2-33c6cf75d358)
 
-1. [Download or clone this repository](https://github.com/yourname/ue-ai-translate).
-2. **Place all files** from **script** folder to your Unreal Engine localization folder (e.g., `Content/Localization`).
+1. Download or clone this repository.
+2. Place all files from **script** folder to your Unreal Engine localization folder (e.g., `Content/Localization`).
 3. Run the setup script:
 
 ```bat
