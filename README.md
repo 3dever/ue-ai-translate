@@ -2,6 +2,8 @@
 
 A Python-based GUI tool for batch-translating Unreal Engine localization files (`.po`) using OpenAI's GPT models.
 
+"Bat" files made for **Windows**, but you can also use a "py" script for **Linux** for sure.
+
 ![image](https://github.com/user-attachments/assets/2b2de679-55f6-48eb-9a08-40f8e835859a)
 
 
@@ -26,6 +28,13 @@ If Python is already installed, you can launch directly using:
 
 ```bat
 ai-translate.bat
+```
+
+For Linux:
+
+Make sure that **tkinter** is installed
+```install
+sudo apt-get install python3-tk
 ```
 
 ---
