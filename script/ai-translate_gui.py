@@ -145,6 +145,7 @@ async def start_translation(api_key_value, batch_size, model):
                 f"Translate ONLY the following English phrases to {lang_code}.\n"
                 f"Respond with EXACTLY one numbered translation per line, without any introduction, notes, or comments.\n"
                 f"Keep the order. Start each line with its number and a dot, like '1. ...'\n\n"
+                f"Keep style tags (like <Style_Narration>...</>) exactly as they are, and preserve all line breaks (\r\n or \r\n\r\n or \r\n\r) literally."
                 + "\n".join(prompts)
             )
 
