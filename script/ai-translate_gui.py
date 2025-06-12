@@ -96,8 +96,10 @@ def on_confirm():
         messagebox.showerror("Error", "Batch size must be a positive integer.")
         return
 
-    root.destroy()
+    root.withdraw()
+    root.update()
     asyncio.run(start_translation(key, batch_size, selected_model.get()))
+    root.destroy()
 
 async def start_translation(api_key_value, batch_size, model):
     client = OpenAI(api_key=api_key_value)
