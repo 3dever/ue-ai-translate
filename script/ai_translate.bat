@@ -15,8 +15,11 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo Python found. Launching GUI...
 python %SCRIPT_NAME%
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Script exited with an error. Press any key to close this window.
+    pause >nul
+)
 
 :END
-echo.
-pause
 endlocal
