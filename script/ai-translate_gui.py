@@ -3,6 +3,7 @@ import time
 import asyncio
 from pathlib import Path
 from tkinter import Tk, ttk, StringVar, messagebox, Label, Button, Entry, Checkbutton, BooleanVar, Text
+import types
 from openai import OpenAI
 import polib
 from dotenv import load_dotenv
@@ -62,6 +63,14 @@ def update_file_info(*args):
         file_info.set(f"{po_path.name} ({size_kb} KB, modified {mod_time})")
     else:
         file_info.set("")
+
+# FIX FOR UGLY POLIB IMPLEMENTATION
+def _str_field_fixed(self, fieldname, delflag, plural_index, field,
+                   wrapwidth=78):
+    if fieldname == 'msgid' or fieldname == 'msgstr':
+        return ['%s%s%s "%s"' % (delflag, fieldname, plural_index,
+                                polib.escape(field))]
+    return polib._BaseEntry._str_field(self, fieldname, delflag, plural_index, field, wrapwidth)
 
 def on_confirm():
     key = api_key.get().strip()
@@ -131,7 +140,7 @@ async def start_translation(api_key_value, batch_size, model):
 
         for i in range(0, total, batch_size):
             batch = untranslated_entries[i:i+batch_size]
-            prompts = [f"{idx+1}. {entry.msgid}" for idx, entry in enumerate(batch)]
+            prompts = [f"{idx+1}. " + polib.escape(entry.msgid) for idx, entry in enumerate(batch)]
             prompt = (
                 f"Translate ONLY the following English phrases to {lang_code}.\n"
                 f"Respond with EXACTLY one numbered translation per line, without any introduction, notes, or comments.\n"
@@ -139,33 +148,42 @@ async def start_translation(api_key_value, batch_size, model):
                 + "\n".join(prompts)
             )
 
-            try:
-                response = await asyncio.to_thread(
-                    client.chat.completions.create,
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3
-                )
-                total_requests += 1
-                lines = response.choices[0].message.content.strip().splitlines()
+            retry_count = 0
+            max_retries = 3
+            while retry_count <= max_retries:
+                try:
+                    response = await asyncio.to_thread(
+                        client.chat.completions.create,
+                        model=model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.3
+                    )
+                    total_requests += 1
+                    lines = response.choices[0].message.content.strip().splitlines()
 
-                filtered_lines = [line for line in lines if line.strip().split(".", 1)[0].isdigit()]
-                if not filtered_lines:
-                    lines = [line for line in lines if ". " in line][:len(batch)]
-                else:
-                    lines = filtered_lines[:len(batch)]
+                    filtered_lines = [line for line in lines if line.strip().split(".", 1)[0].isdigit()]
+                    if not filtered_lines:
+                        lines = [line for line in lines if ". " in line][:len(batch)]
+                    else:
+                        lines = filtered_lines[:len(batch)]
 
-                for entry, line in zip(batch, lines):
-                    translated_text = line.split(". ", 1)[-1].strip()
-                    if not entry.msgstr.strip():
-                        entry.msgstr = translated_text
-                        translated += 1
-            except Exception as e:
-                for entry in batch:
-                    if not entry.msgstr.strip():
-                        entry.msgstr = f"[ERROR: {e}]"
-                        errors += 1
-                plog(f"Error in batch starting at {i+1}: {e}")
+                    for entry, line in zip(batch, lines):
+                        translated_text = line.split(". ", 1)[-1].strip()
+                        if not entry.msgstr.strip():
+                            entry.msgstr = polib.unescape(translated_text)
+                            translated += 1
+                    break  # break retry loop if successful
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        for entry in batch:
+                            if not entry.msgstr.strip():
+                                entry.msgstr = f"[ERROR: {e}]"
+                                errors += 1
+                        plog(f"Error in batch starting at {i+1}: {e}")
+                    else:
+                        plog(f"Retrying batch {i+1}-{min(i+batch_size,total)} due to error: {e}")
+                        await asyncio.sleep(2)
 
             plog(f"Translated entries {i+1} to {min(i+batch_size, total)}")
             await asyncio.sleep(REQUEST_DELAY)
@@ -173,6 +191,8 @@ async def start_translation(api_key_value, batch_size, model):
         if translated > 0 or errors > 0:
             out_path = po_path.with_name(f"{po_path.stem}.po")
             po.wrapwidth = 0
+            for e in po:
+                e._str_field = types.MethodType(_str_field_fixed, e)
             po.save(str(out_path))
             plog(f"Saved as {out_path.name} ({translated} translated, {errors} errors, {total - translated - errors} skipped)")
         else:
